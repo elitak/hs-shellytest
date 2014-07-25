@@ -1,17 +1,30 @@
 {-# LANGUAGE OverloadedStrings #-}
---{-# LANGUAGE ExtendedDefaultRules #-}
+{-# LANGUAGE QuasiQuotes #-}
 module Main where
 
-import Shelly
 import Prelude hiding (putStrLn)
-import Data.Text.IO
+import Data.Text.Lazy
+import Data.Text.Lazy.IO
+import qualified Data.Text.Internal as DTI
+import Text.Shakespeare.Text
 
--- TODO windows shell commands? detect os and run the appropriate commands?
--- TODO cross-comp to windows exe?
+-- prepend sudo to all commands here
+import Shelly hiding (run, command)
+import qualified Shelly (run, command)
+run cmd args = Shelly.run "sudo" (cmd:args)
+command cmd args = Shelly.command "sudo" (cmd:args)
+
+bswap16 :: Text -> Text -> Sh Text
+bswap16 srcDevPath destDevName = do
+    let dmsetup = command "dmsetup" ["create", toStrict destDevName]
+    devSize <- run "blockdev" ["--getsize", toStrict srcDevPath]
+    let mapSpec = toStrict [lt|0 #{devSize} bswap16 #{srcDevPath}|]
+    setStdin mapSpec
+    dmsetup [] >>= (return . fromStrict)
+
 
 main = do
-    listing <- shelly $ silently $ do
-        run_ "echo" ["hello", "world"]
-        listing <- run "ls" []
+    listing <- shelly $ verbosely $ do
+        listing <- bswap16 "/dev/sda" "testdev"
         return listing
     putStrLn listing
