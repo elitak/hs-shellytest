@@ -15,6 +15,7 @@ import Control.Applicative
 import Data.ByteString.Lazy (readFile)
 import Data.Maybe
 import Shelly hiding (fromText)
+import Text.EditDistance
 
 -- TODO: guess and add to PATH
 runBatch commands = do
@@ -52,6 +53,14 @@ instance FromJSON AppId
 instance FromJSON GameAccount
 
 main = do
+    -- use something like the following samples to get nearest-match of accounts.json entries to lookup appid in appids.json
+    print $ levenshteinDistance defaultEditCosts (unpack $ toLower "Age of wonders 3") (unpack $ toLower "AgeOfWondersIII")
+    print $ levenshteinDistance defaultEditCosts (unpack $ toLower "aow3") (unpack $ toLower "AgeOfWondersIII")
+    print $ levenshteinDistance defaultEditCosts (unpack $ toLower "AOW3") (unpack $ toLower "AgeOfWondersIII")
+    -- I could easily add 1to1 rules for special chars like hypens through the
+    -- edit-distance api, but its harder for mappings like III->3 roman
+    -- numerals and easier to just sanitize the input by stripping most
+    -- non-ascii chars
     parsed <- decode <$> readFile "accounts.json"
     guard $ isJust parsed
     shelly $ verbosely $ forM_ (fromJust parsed) $ \GameAccount{..} ->

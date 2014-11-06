@@ -25,5 +25,6 @@ executable hs-shellytest
                      , text
                      , aeson
                      , bytestring
+                     , edit-distance
   hs-source-dirs:      src
   default-language:    Haskell2010
